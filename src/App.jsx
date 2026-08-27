@@ -3,32 +3,46 @@ import { supabase } from './supabase'
 import { students, structure } from './data'
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useState('beranda')
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [photos, setPhotos] = useState([])
+  const [user, setUser] = useState(null)
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null))
     fetchPhotos()
+    return () => subscription.unsubscribe()
   }, [])
 
   async function fetchPhotos() {
-    const { data } = await supabase.from('documentation').select('*')
-    if (data) setPhotos(data)
+    try {
+      const { data, error } = await supabase.from('documentation').select('*')
+      if (error) {
+        console.error('Supabase error:', error)
+        setPhotos([])
+      } else {
+        setPhotos(data || [])
+      }
+    } catch (err) {
+      console.error('Catch error:', err)
+      setPhotos([])
+    }
   }
 
-  const handleTabChange = (tab) => {
-    setIsLoading(true)
-    setActiveTab(tab)
-    setTimeout(() => setIsLoading(false), 400)
-  }
+   const handleTabChange = (tab) => {
+     setIsLoading(true)
+     setActiveTab(tab)
+     setTimeout(() => setIsLoading(false), 400)
+   }
 
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-blue-600 selection:text-white relative bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px]">
       <nav className="sticky top-0 z-50 bg-blue-600 border-b border-blue-600">
         <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => handleTabChange('dashboard')}>
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => handleTabChange('beranda')}>
             <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center text-blue-600 shadow-lg">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
@@ -36,19 +50,25 @@ export default function App() {
             </div>
             <div className="flex flex-col">
               <span className="text-sm font-black tracking-wider text-white uppercase leading-none">XI RPL ONE</span>
-              <span className="text-[9px] font-bold text-blue-50 tracking-widest uppercase mt-0.5">Software Engineering</span>
+              <span className="text-[9px] font-bold text-blue-50 tracking-widest uppercase mt-0.5">Rekayasa Perangkat Lunak</span>
             </div>
           </div>
           
-          <div className="flex items-center gap-1 bg-blue-700/30 p-1 rounded-xl border border-blue-400/20 text-sm font-medium">
-            {['dashboard', 'siswa', 'struktur', 'jadwal', 'dokumentasi', 'admin'].map((tab) => (
+          <div className="flex items-center bg-blue-700/30 p-1 rounded-xl border border-blue-400/20 text-sm font-medium relative w-fit overflow-hidden">
+            <div
+              className="absolute top-1 bottom-1 bg-white rounded-lg shadow-sm transition-all duration-300 ease-in-out"
+              style={{
+                left: Math.max(0, ['beranda', 'siswa', 'struktur', 'jadwal', 'dokumentasi'].indexOf(activeTab)) * 120 + 4 + 'px',
+                width: '120px',
+                display: ['beranda', 'siswa', 'struktur', 'jadwal', 'dokumentasi'].includes(activeTab) ? 'block' : 'none'
+              }}
+            />
+            {['beranda', 'siswa', 'struktur', 'jadwal', 'dokumentasi'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => handleTabChange(tab)}
-                className={`px-4 py-1.5 rounded-lg capitalize transition-all ${
-                  activeTab === tab
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-white hover:bg-blue-500/50'
+                className={`px-2 py-1.5 rounded-lg capitalize transition-colors duration-300 z-10 w-[120px] text-center whitespace-nowrap ${
+                  activeTab === tab ? 'text-blue-600 font-semibold' : 'text-white'
                 }`}
               >
                 {tab}
@@ -67,7 +87,7 @@ export default function App() {
           </div>
         )}
 
-        {!isLoading && activeTab === 'dashboard' && (
+        {!isLoading && activeTab === 'beranda' && (
           <section className="py-12 animate-fade-up max-w-4xl mx-auto space-y-20">
             <div className="text-center space-y-6">
               <span className="bg-blue-50 text-blue-600 text-xs font-bold px-4 py-1.5 rounded-full border border-blue-100 uppercase tracking-widest">
@@ -77,12 +97,12 @@ export default function App() {
                 XI RPL 1 – <span className="text-blue-600">AXIOO CLASS</span>
               </h1>
               <p className="text-xl text-slate-600 font-medium italic max-w-2xl mx-auto">
-                "Empowering Future Software Engineers with Industry Standards"
+                "Membekali Insinyur Perangkat Lunak Masa Depan dengan Standar Industri"
               </p>
             </div>
 
             <div className="space-y-6 text-slate-700 leading-relaxed text-lg border-l-4 border-blue-600 pl-6">
-              <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">About Our Class</h2>
+              <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Tentang Kelas Kami</h2>
               <p>
                 Selamat datang di laman resmi <strong>XI RPL 1 (Axioo Class)</strong>. Kami adalah kelas unggulan program keahlian Rekayasa Perangkat Lunak yang mengombinasikan akademis vokasi dengan standar kebutuhan industri modern melalui kemitraan strategis bersama <strong>Axioo Class Program</strong> dan <strong>Intel Education</strong>.
               </p>
@@ -92,9 +112,9 @@ export default function App() {
             </div>
 
             <div className="space-y-6 text-slate-700 leading-relaxed text-lg border-l-4 border-blue-600 pl-6">
-              <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Industry Collaboration & Credentials</h2>
+              <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Kolaborasi Industri & Kredensial</h2>
               <p>
-                Melalui dukungan Axioo Class Program dan Intel Education, seluruh peserta didik dibekali pembelajaran berbasis praktik (<em>hands-on experience</em>) yang selaras dengan perkembangan teknologi masa kini.
+                Melalui dukungan Axioo Class Program dan Intel Education, seluruh peserta didik dibekali pembelajaran berbasis praktik (<em>pengalaman langsung</em>) yang selaras dengan perkembangan teknologi masa kini.
               </p>
               <ul className="list-disc pl-5 space-y-3">
                 <li><strong>Perakitan Perangkat Mandiri:</strong> Pelatihan terstruktur perakitan <em>laptop</em> dari komponen dasar hingga unit siap pakai sesuai standar manufaktur.</li>
@@ -103,45 +123,45 @@ export default function App() {
             </div>
 
             <div className="space-y-6 text-slate-700 leading-relaxed text-lg border-l-4 border-blue-600 pl-6">
-              <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Study Excursion 2026 & Field Experiences</h2>
+              <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Study Excursion 2026 & Pengalaman Lapangan</h2>
               <p>
                 Pembelajaran di XI RPL 1 tidak hanya berlangsung di dalam ruang kelas, tetapi juga diperkaya melalui kegiatan <em>Study Excursion 2026</em> ke pusat-pusat industri dan teknologi nasional:
               </p>
               <ul className="list-disc pl-5 space-y-3">
-                <li><strong>Factory Tour PT Teradata Indonusa (Jakarta):</strong> Melihat langsung proses produksi dan perakitan lini produk Axioo secara <em>real-time</em>—mulai dari <em>laptop</em>, <em>monitor</em>, <em>PC All-in-One</em>, hingga alur <em>quality control</em> dan manajemen arsitektur pabrik.</li>
+                <li><strong>Kunjungan Pabrik PT Teradata Indonusa (Jakarta):</strong> Melihat langsung proses produksi dan perakitan lini produk Axioo secara <em>langsung</em>—mulai dari <em>laptop</em>, <em>monitor</em>, <em>PC All-in-One</em>, hingga alur <em>kontrol kualitas</em> dan manajemen arsitektur pabrik.</li>
                 <li><strong>Eksplorasi Robotika di RoboPark Jakarta:</strong> Mempelajari mekanika, rancang bangun <em>body</em>, serta logika pemrograman robot. Siswa berinteraksi langsung dengan berbagai jenis teknologi robotika (seperti <em>humanoid</em>, <em>robotic canine</em>, hingga robot entertainer) serta menjajal simulator balap berbasis teknologi tinggi.</li>
                 <li><strong>Kunjungan Edukasi & Budaya:</strong> Memperluas wawasan kebangsaan dan kebersamaan melalui kunjungan ke landmark ikonik ibu kota, meliputi Monumen Nasional (Monas), Masjid Istiqlal, dan kawasan Ancol.</li>
               </ul>
               
-              {/* Highlight Photos Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                <div className="h-64 rounded-xl overflow-hidden relative shadow-md">
-                  <img src={photos.find(p => p.title === 'dashboard_1')?.image_url || photos[0]?.image_url} alt="Factory Tour" className="w-full h-full object-cover" />
-                  <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md text-white text-xs px-3 py-1 rounded-md">
-                    Factory Tour PT Teradata Indonusa
-                  </div>
-                </div>
-                <div className="h-64 rounded-xl overflow-hidden relative shadow-md">
-                  <img src={photos.find(p => p.title === 'dashboard_2')?.image_url || photos[1]?.image_url} alt="RoboPark Jakarta" className="w-full h-full object-cover" />
-                  <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md text-white text-xs px-3 py-1 rounded-md">
-                    Eksplorasi RoboPark Jakarta
-                  </div>
-                </div>
-              </div>
+               {/* Highlight Photos Grid */}
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+                 <div className="h-64 rounded-xl overflow-hidden relative shadow-md">
+                   <img src={photos.find(p => p.title === 'dashboard_1')?.image_url || ''} alt="Kunjungan Pabrik" className="w-full h-full object-cover" />
+                   <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md text-white text-xs px-3 py-1 rounded-md">
+                     Kunjungan Pabrik PT Teradata Indonusa
+                   </div>
+                 </div>
+                 <div className="h-64 rounded-xl overflow-hidden relative shadow-md">
+                   <img src={photos.find(p => p.title === 'dashboard_2')?.image_url || ''} alt="RoboPark Jakarta" className="w-full h-full object-cover" />
+                   <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md text-white text-xs px-3 py-1 rounded-md">
+                     Eksplorasi RoboPark Jakarta
+                   </div>
+                 </div>
+               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-8 border-t border-slate-200">
               <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-slate-900">Our Core Values</h3>
+                <h3 className="text-2xl font-bold text-slate-900">Nilai-Nilai Kami</h3>
                 <ul className="space-y-3 text-slate-600">
-                  <li><strong>High Competence:</strong> Menguasai fundamental <em>software engineering</em> serta pemahaman mendalam pada <em>hardware</em>.</li>
-                  <li><strong>Industry Readiness:</strong> Memiliki kualifikasi dan sertifikasi resmi yang diakui oleh dunia kerja.</li>
-                  <li><strong>Strong Teamwork:</strong> Solidaritas tinggi antarsiswa dalam menyelesaikan proyek teknis maupun kegiatan akademik.</li>
+                  <li><strong>Kompetensi Tinggi:</strong> Menguasai fundamental <em>rekayasa perangkat lunak</em> serta pemahaman mendalam pada <em>perangkat keras</em>.</li>
+                  <li><strong>Siap Industri:</strong> Memiliki kualifikasi dan sertifikasi resmi yang diakui oleh dunia kerja.</li>
+                  <li><strong>Kerja Tim Solid:</strong> Solidaritas tinggi antarsiswa dalam menyelesaikan proyek teknis maupun kegiatan akademik.</li>
                 </ul>
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-slate-900">Class Stats</h3>
+                <h3 className="text-2xl font-bold text-slate-900">Statistik Kelas</h3>
                 <div className="space-y-3 text-slate-600">
                   <div className="flex justify-between border-b border-slate-200 pb-2">
                     <span className="font-semibold text-slate-700">Total Siswa</span>
@@ -156,20 +176,22 @@ export default function App() {
                     <span>9 Sertifikat Industri</span>
                   </div>
                 </div>
-                <div className="pt-4">
-                  <a
-                    href="https://www.smkkrian1.sch.id/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center w-full bg-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-blue-500 transition shadow-lg shadow-blue-500/20"
-                  >
-                    Website SMK Krian 1 Sidoarjo
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
-                </div>
               </div>
+            </div>
+
+            <div className="pt-4 max-w-md mx-auto">
+              <hr className="border-slate-200 mb-4" />
+              <a
+                href="https://www.smkkrian1.sch.id/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center w-full bg-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-blue-500 transition shadow-lg shadow-blue-500/20"
+              >
+                Website SMK Krian 1 Sidoarjo
+                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
             </div>
           </section>
         )}
@@ -199,40 +221,41 @@ export default function App() {
             </div>
 
             {/* Student Popup Modal */}
-            {selectedStudent && (
-              <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-up">
-                <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-slate-100 text-center relative space-y-6">
-                  <button 
-                    onClick={() => setSelectedStudent(null)}
-                    className="absolute top-4 right-4 h-8 w-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition font-bold"
-                  >
-                    ✕
-                  </button>
-
-                  <div className="w-32 h-32 mx-auto rounded-2xl bg-blue-50 border-4 border-blue-100 flex items-center justify-center overflow-hidden shadow-inner">
-                    <svg className="w-16 h-16 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="inline-block bg-blue-50 text-blue-600 text-xs font-bold px-3 py-1 rounded-full border border-blue-100">
-                      Absen #{String(selectedStudent.id).padStart(2, '0')}
-                    </span>
-                    <h3 className="text-xl font-extrabold text-slate-900 pt-2">{selectedStudent.name}</h3>
-                    <p className="text-xs text-slate-400 font-medium tracking-wider uppercase">XI RPL 1 • Axioo Class</p>
-                  </div>
-
-                  <button 
-                    onClick={() => setSelectedStudent(null)}
-                    className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
-                  >
-                    Tutup
-                  </button>
-                </div>
-              </div>
-            )}
           </section>
+        )}
+
+        {selectedStudent && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 fixed-modal" onClick={() => setSelectedStudent(null)}>
+            <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-slate-100 text-center relative space-y-6" onClick={(e) => e.stopPropagation()}>
+              <button 
+                onClick={() => setSelectedStudent(null)}
+                className="absolute top-4 right-4 h-8 w-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition font-bold"
+              >
+                ✕
+              </button>
+
+              <div className="w-32 h-32 mx-auto rounded-2xl bg-blue-50 border-4 border-blue-100 flex items-center justify-center overflow-hidden shadow-inner">
+                <svg className="w-16 h-16 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+
+              <div className="space-y-1">
+                <span className="inline-block bg-blue-50 text-blue-600 text-xs font-bold px-3 py-1 rounded-full border border-blue-100">
+                  Absen #{String(selectedStudent.id).padStart(2, '0')}
+                </span>
+                <h3 className="text-xl font-extrabold text-slate-900 pt-2">{selectedStudent.name}</h3>
+                <p className="text-xs text-slate-400 font-medium tracking-wider uppercase">XI RPL 1 • Axioo Class</p>
+              </div>
+
+              <button 
+                onClick={() => setSelectedStudent(null)}
+                className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
         )}
 
         {!isLoading && activeTab === 'struktur' && (
@@ -276,13 +299,9 @@ export default function App() {
             </div>
 
             <div className="space-y-8 pt-4">
-              {photos.filter(p => p.title === 'dokumentasi').length === 0 ? (
-                <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300 text-slate-400">
-                  Belum ada foto dokumentasi.
-                </div>
-              ) : (
+              {Array.isArray(photos) && photos.filter(p => p.title === 'dokumentasi').length > 0 ? (
                 photos.filter(p => p.title === 'dokumentasi').map((photo, index) => (
-                  <div key={index} className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-md hover:shadow-lg transition">
+                  <div key={index} className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-md">
                     <div className="w-full max-h-[500px] overflow-hidden bg-slate-100 flex items-center justify-center">
                       <img src={photo.image_url} alt={`Dokumentasi ${index + 1}`} className="w-full h-auto object-cover" />
                     </div>
@@ -292,15 +311,38 @@ export default function App() {
                     </div>
                   </div>
                 ))
+              ) : (
+                <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300 text-slate-400">
+                  Belum ada foto dokumentasi.
+                </div>
               )}
             </div>
           </section>
         )}
 
-        {!isLoading && activeTab === 'admin' && (
+        {!isLoading && activeTab === 'admin' && !user && (
+          <div className="max-w-sm mx-auto bg-white p-8 rounded-3xl shadow-xl border border-slate-200">
+            <h2 className="text-xl font-bold mb-4">Login Admin</h2>
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              const { error } = await supabase.auth.signInWithPassword({ 
+                email: e.target.email.value, 
+                password: e.target.password.value 
+              })
+              if (error) alert(error.message)
+            }}>
+              <input name="email" type="email" placeholder="Email" className="w-full p-3 mb-3 border rounded-xl" required />
+              <input name="password" type="password" placeholder="Password" className="w-full p-3 mb-4 border rounded-xl" required />
+              <button className="w-full bg-blue-600 text-white py-3 rounded-xl">Login</button>
+            </form>
+          </div>
+        )}
+
+        {!isLoading && activeTab === 'admin' && user && (
           <section className="animate-fade-up max-w-xl mx-auto py-12">
+            <button onClick={() => supabase.auth.signOut()} className="mb-4 text-xs text-red-500">Logout</button>
             <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-200 space-y-8">
-              <h2 className="text-2xl font-black text-slate-900">Admin Panel</h2>
+              <h2 className="text-2xl font-black text-slate-900">Panel Admin</h2>
               
               {/* Form Upload */}
               <form 
@@ -308,16 +350,28 @@ export default function App() {
                   e.preventDefault()
                   const file = e.target.file.files[0]
                   const section = e.target.section.value
-                  if (file) {
+                  if (!file) return alert('Pilih file terlebih dahulu!')
+                  
+                  try {
                     const fileName = `${Date.now()}_${file.name}`
                     const { error } = await supabase.storage.from('galeri').upload(fileName, file)
-                    if (error) return alert('Gagal: ' + error.message)
+                    if (error) {
+                      alert('Gagal upload storage: ' + error.message)
+                      return
+                    }
                     
                     const { data: { publicUrl } } = supabase.storage.from('galeri').getPublicUrl(fileName)
-                    await supabase.from('documentation').insert([{ title: section, image_url: publicUrl }])
+                    const { error: dbError } = await supabase.from('documentation').insert([{ title: section, image_url: publicUrl }])
+                    if (dbError) {
+                      alert('Gagal simpan database: ' + dbError.message)
+                      return
+                    }
+
                     alert('Foto berhasil diupload!')
                     e.target.reset()
                     fetchPhotos()
+                  } catch (err) {
+                    alert('Terjadi kesalahan: ' + err.message)
                   }
                 }}
                 className="space-y-4 border-b pb-8"
@@ -326,8 +380,8 @@ export default function App() {
                 <div>
                   <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Pilih Posisi / Bagian Web</label>
                   <select name="section" className="w-full mt-2 p-3 bg-slate-50 border rounded-xl" required>
-                    <option value="dashboard_1">Dashboard - Foto 1 (Factory Tour)</option>
-                    <option value="dashboard_2">Dashboard - Foto 2 (RoboPark)</option>
+                    <option value="dashboard_1">Beranda - Foto 1 (Kunjungan Pabrik)</option>
+                    <option value="dashboard_2">Beranda - Foto 2 (RoboPark)</option>
                     <option value="dokumentasi">Galeri Dokumentasi</option>
                   </select>
                 </div>
@@ -347,7 +401,7 @@ export default function App() {
                         <img src={item.image_url} alt="Preview" className="h-12 w-12 object-cover rounded-lg border flex-shrink-0" />
                         <div className="overflow-hidden">
                           <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 uppercase tracking-wider block w-max">
-                            {item.title === 'dashboard_1' ? 'Dashboard - Factory Tour' : item.title === 'dashboard_2' ? 'Dashboard - RoboPark' : 'Galeri Dokumentasi'}
+                            {item.title === 'dashboard_1' ? 'Beranda - Kunjungan Pabrik' : item.title === 'dashboard_2' ? 'Beranda - RoboPark' : 'Galeri Dokumentasi'}
                           </span>
                           <p className="text-xs text-slate-500 truncate mt-1">{item.image_url.split('/').pop()}</p>
                         </div>
@@ -384,7 +438,7 @@ export default function App() {
       </main>
 
       <footer className="py-12 border-t border-slate-200 text-center text-slate-500 text-sm">
-        <p>© 2026 XI RPL ONE - Axioo Class. All rights reserved.</p>
+        <p>© 2026 XI RPL ONE - Axioo Class. Hak cipta dilindungi. <span onClick={() => handleTabChange('admin')} className="cursor-pointer opacity-20 hover:opacity-100 transition">⚙️</span></p>
         <div className="mt-4 flex justify-center space-x-6">
           <a href="#" className="hover:text-blue-600 transition">Instagram</a>
           <a href="#" className="hover:text-blue-600 transition">GitHub</a>
